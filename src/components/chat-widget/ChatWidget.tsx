@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { defaultConfig } from "./config";
 import { useNotificationSound } from "./useNotificationSound";
+import { useSpeechInput } from "./useSpeechInput";
 import { MarkdownLite } from "./MarkdownLite";
 import { now } from "./now";
 import type { ChatMessage, ChatWidgetConfig } from "./types";
@@ -59,9 +60,14 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
     },
   ]);
 
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+
   const { playSend, playReceive } = useNotificationSound(soundOn);
+  const { isRecording, supported: micSupported, toggle: toggleMic } =
+    useSpeechInput((transcript) => setInput(transcript));
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -73,16 +79,22 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || isTyping) return;
+    if (!trimmed && !attachedFile) return;
+    if (isTyping) return;
+
+    const content = attachedFile
+      ? [trimmed, `📎 ${attachedFile.name}`].filter(Boolean).join("\n")
+      : trimmed;
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: trimmed,
+      content,
       timestamp: now(),
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setAttachedFile(null);
     playSend();
     setIsTyping(true);
 
@@ -90,7 +102,7 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({ message: content }),
       });
       const data = await res.json();
       const agentMsg: ChatMessage = {
@@ -259,6 +271,20 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
           </div>
 
           <div className="border-t border-white/10 p-3">
+            {attachedFile && (
+              <div className="mb-2 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-300">
+                <Paperclip className="h-3 w-3 shrink-0 text-zinc-500" />
+                <span className="flex-1 truncate">{attachedFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setAttachedFile(null)}
+                  aria-label="Remove attachment"
+                  className="text-zinc-500 hover:text-zinc-200"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -266,9 +292,19 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
               }}
               className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2 py-1.5"
             >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setAttachedFile(file);
+                  e.target.value = "";
+                }}
+              />
               <button
                 type="button"
-                tabIndex={-1}
+                onClick={() => fileInputRef.current?.click()}
                 aria-label="Attach a file"
                 className="rounded-full p-1.5 text-zinc-500 transition-colors hover:text-zinc-300"
               >
@@ -278,20 +314,25 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Message..."
+                placeholder={isRecording ? "Listening..." : "Message..."}
                 className="flex-1 bg-transparent text-[13.5px] text-zinc-100 placeholder-zinc-500 outline-none"
               />
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-label="Voice input"
-                className="rounded-full p-1.5 text-zinc-500 transition-colors hover:text-zinc-300"
-              >
-                <Mic className="h-4 w-4" />
-              </button>
+              {micSupported && (
+                <button
+                  type="button"
+                  onClick={toggleMic}
+                  aria-label={isRecording ? "Stop voice input" : "Start voice input"}
+                  className={cx(
+                    "rounded-full p-1.5 transition-colors",
+                    isRecording ? "animate-pulse text-red-400" : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  <Mic className="h-4 w-4" />
+                </button>
+              )}
               <button
                 type="submit"
-                disabled={!input.trim() || isTyping}
+                disabled={(!input.trim() && !attachedFile) || isTyping}
                 aria-label="Send message"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-30"
                 style={{ background: `linear-gradient(135deg, ${accent}, ${shade(accent, -40)})` }}
