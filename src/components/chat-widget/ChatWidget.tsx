@@ -342,7 +342,7 @@ export function ChatWidget(config: Partial<ChatWidgetConfig> = {}) {
             </form>
             {cfg.showBranding && (
               <p className="mt-2 text-center text-[10px] text-zinc-600">
-                Powered by {cfg.companyName}
+                Powered by {cfg.companyName} · Developed by zeeshanqadir568
               </p>
             )}
           </div>
