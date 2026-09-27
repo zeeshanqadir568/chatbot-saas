@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nova Chat Widget
 
-## Getting Started
+An embeddable chat widget you can drop onto any website: a compact bubble that opens a chat
+popup, with an expand button for a full-size panel. Built as the front end for an AI support or
+sales assistant, with branding you can change in one config file.
 
-First, run the development server:
+| Landing | Compact chat | Expanded panel |
+| --- | --- | --- |
+| ![Landing](screenshots/landing.png) | ![Compact conversation](screenshots/compact-conversation.png) | ![Expanded panel](screenshots/expanded-panel.png) |
+
+## Features
+
+- Compact popup and expandable large-panel mode
+- Quick-reply suggestions so visitors don't have to type
+- Structured replies (bullets, bold) rendered in the chat
+- Voice input (speech-to-text) and file attachments with a local preview
+- Synthesised send/receive sounds with a mute toggle
+- Branding config: agent name, company name, accent colour, avatar, greeting, position
+
+> **Demo backend:** `src/app/api/chat/route.ts` answers with keyword-matched sample replies.
+> It is not connected to a language model or knowledge base yet. Swap that route for your own
+> LLM or RAG endpoint to make it answer real questions.
+
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 and click the bubble in the bottom-right corner.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Customise
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Edit `src/components/chat-widget/config.ts`:
 
-## Learn More
+```ts
+export const defaultConfig: ChatWidgetConfig = {
+  agentName: "Nova",
+  companyName: "Novachat",
+  accentColor: "#7c5cff",
+  avatarInitial: "N",
+  greeting: "Hi, I'm Nova. Ask me about pricing, features, or how to get started.",
+  suggestions: ["What can you do?", "Show me pricing", "Talk to a human"],
+  position: "bottom-right",
+  showBranding: true,
+};
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js 16 (App Router), React, TypeScript, Tailwind CSS.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Layout
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/components/chat-widget/`: the widget (`ChatWidget.tsx`, config, types, speech input and sound hooks)
+- `src/app/api/chat/route.ts`: demo chat endpoint
+- `src/app/page.tsx`: demo landing page
+- `screenshots/`: images used in this README
